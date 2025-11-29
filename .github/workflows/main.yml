@@ -1,0 +1,99 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            configure_preset: win64
+            build_preset: win64-rel
+            binary_path: build/win64/Release/msdf-atlas-gen.exe
+            archive_name: msdf-atlas-gen-win64.zip
+            asset_name: msdf-atlas-gen.exe
+          - os: ubuntu-latest
+            configure_preset: linux-vcpkg-rel
+            build_preset: linux-vcpkg-rel
+            binary_path: build/linux-rel/msdf-atlas-gen
+            archive_name: msdf-atlas-gen-linux.tar.gz
+            asset_name: msdf-atlas-gen
+          - os: macos-latest
+            configure_preset: osx-vcpkg-rel
+            build_preset: osx-vcpkg-rel
+            binary_path: build/osx-rel/msdf-atlas-gen
+            archive_name: msdf-atlas-gen-macos.tar.gz
+            asset_name: msdf-atlas-gen
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup vcpkg
+        uses: lukka/run-vcpkg@v11
+        with:
+          vcpkgJsonGlob: 'vcpkg.json'
+          vcpkgGitCommitId: '74e6536215718009aae747d86d84b78376bf9e09'
+
+      - name: Run CMake
+        uses: lukka/run-cmake@v10
+        with:
+          configurePreset: ${{ matrix.configure_preset }}
+          buildPreset: ${{ matrix.build_preset }}
+
+      - name: Verify Binary
+        shell: bash
+        run: |
+          if [ -f "${{ matrix.binary_path }}" ]; then
+            echo "Binary found at ${{ matrix.binary_path }}"
+            # Try to run it to see if it executes (e.g. prints help)
+            # On windows it might exit with code different than 0 if no args, so we allow failure or check output
+            "${{ matrix.binary_path }}" -help || true
+          else
+            echo "Binary NOT found at ${{ matrix.binary_path }}"
+            find build -name msdf*
+            exit 1
+          fi
+
+      - name: Package (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+            $exePath = "${{ matrix.binary_path }}"
+            $archiveName = "${{ matrix.archive_name }}"
+            Compress-Archive -Path $exePath -DestinationPath $archiveName -Force
+
+      - name: Package (Unix)
+        if: runner.os != 'Windows'
+        run: |
+          tar -czvf ${{ matrix.archive_name }} -C $(dirname ${{ matrix.binary_path }}) $(basename ${{ matrix.binary_path }})
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.archive_name }}
+          path: ${{ matrix.archive_name }}
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+            path: artifacts
+            merge-multiple: true
+
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: artifacts/*
