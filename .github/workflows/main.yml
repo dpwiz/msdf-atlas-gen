@@ -60,7 +60,7 @@ jobs:
             "${{ matrix.binary_path }}" -help || true
           else
             echo "Binary NOT found at ${{ matrix.binary_path }}"
-            find . -name ${{ matrix.binary_path }}
+            find . -name $(basename ${{ matrix.binary_path }})
             exit 1
           fi
 
