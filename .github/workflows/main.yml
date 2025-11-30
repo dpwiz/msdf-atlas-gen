@@ -23,13 +23,13 @@ jobs:
           - os: ubuntu-latest
             configure_preset: linux-vcpkg-rel
             build_preset: linux-vcpkg-rel
-            binary_path: bin/msdf-atlas-gen
+            binary_path: build/linux-rel/bin/msdf-atlas-gen
             archive_name: msdf-atlas-gen-linux.tar.gz
             asset_name: msdf-atlas-gen
           - os: macos-latest
             configure_preset: osx-vcpkg-rel
             build_preset: osx-vcpkg-rel
-            binary_path: bin/msdf-atlas-gen
+            binary_path: build/osx-rel/bin/msdf-atlas-gen
             archive_name: msdf-atlas-gen-macos.tar.gz
             asset_name: msdf-atlas-gen
 
