@@ -17,19 +17,19 @@ jobs:
           - os: windows-latest
             configure_preset: win64
             build_preset: win64-rel
-            binary_path: build/win64/Release/msdf-atlas-gen.exe
+            binary_path: build/win64/bin/Release/msdf-atlas-gen.exe
             archive_name: msdf-atlas-gen-win64.zip
             asset_name: msdf-atlas-gen.exe
           - os: ubuntu-latest
             configure_preset: linux-vcpkg-rel
             build_preset: linux-vcpkg-rel
-            binary_path: build/linux-rel/msdf-atlas-gen
+            binary_path: bin/msdf-atlas-gen
             archive_name: msdf-atlas-gen-linux.tar.gz
             asset_name: msdf-atlas-gen
           - os: macos-latest
             configure_preset: osx-vcpkg-rel
             build_preset: osx-vcpkg-rel
-            binary_path: build/osx-rel/msdf-atlas-gen
+            binary_path: bin/msdf-atlas-gen
             archive_name: msdf-atlas-gen-macos.tar.gz
             asset_name: msdf-atlas-gen
 
@@ -60,7 +60,7 @@ jobs:
             "${{ matrix.binary_path }}" -help || true
           else
             echo "Binary NOT found at ${{ matrix.binary_path }}"
-            find build -name msdf*
+            find . -name ${{ matrix.binary_path }}
             exit 1
           fi
 
