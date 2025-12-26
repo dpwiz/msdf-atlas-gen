@@ -3,23 +3,23 @@
 
 namespace msdf_atlas {
 
-void scanlineGenerator(const msdfgen::BitmapRef<float, 1> &output, const GlyphGeometry &glyph, const GeneratorAttributes &attribs) {
+void scanlineGenerator(const msdfgen::BitmapSection<float, 1> &output, const GlyphGeometry &glyph, const GeneratorAttributes &attribs) {
     msdfgen::rasterize(output, glyph.getShape(), glyph.getBoxScale(), glyph.getBoxTranslate(), MSDF_ATLAS_GLYPH_FILL_RULE);
 }
 
-void sdfGenerator(const msdfgen::BitmapRef<float, 1> &output, const GlyphGeometry &glyph, const GeneratorAttributes &attribs) {
+void sdfGenerator(const msdfgen::BitmapSection<float, 1> &output, const GlyphGeometry &glyph, const GeneratorAttributes &attribs) {
     msdfgen::generateSDF(output, glyph.getShape(), glyph.getBoxProjection(), glyph.getBoxRange(), attribs.config);
     if (attribs.scanlinePass)
         msdfgen::distanceSignCorrection(output, glyph.getShape(), glyph.getBoxProjection(), MSDF_ATLAS_GLYPH_FILL_RULE);
 }
 
-void psdfGenerator(const msdfgen::BitmapRef<float, 1> &output, const GlyphGeometry &glyph, const GeneratorAttributes &attribs) {
+void psdfGenerator(const msdfgen::BitmapSection<float, 1> &output, const GlyphGeometry &glyph, const GeneratorAttributes &attribs) {
     msdfgen::generatePSDF(output, glyph.getShape(), glyph.getBoxProjection(), glyph.getBoxRange(), attribs.config);
     if (attribs.scanlinePass)
         msdfgen::distanceSignCorrection(output, glyph.getShape(), glyph.getBoxProjection(), MSDF_ATLAS_GLYPH_FILL_RULE);
 }
 
-void msdfGenerator(const msdfgen::BitmapRef<float, 3> &output, const GlyphGeometry &glyph, const GeneratorAttributes &attribs) {
+void msdfGenerator(const msdfgen::BitmapSection<float, 3> &output, const GlyphGeometry &glyph, const GeneratorAttributes &attribs) {
     msdfgen::MSDFGeneratorConfig config = attribs.config;
     if (attribs.scanlinePass)
         config.errorCorrection.mode = msdfgen::ErrorCorrectionConfig::DISABLED;
@@ -34,7 +34,7 @@ void msdfGenerator(const msdfgen::BitmapRef<float, 3> &output, const GlyphGeomet
     }
 }
 
-void mtsdfGenerator(const msdfgen::BitmapRef<float, 4> &output, const GlyphGeometry &glyph, const GeneratorAttributes &attribs) {
+void mtsdfGenerator(const msdfgen::BitmapSection<float, 4> &output, const GlyphGeometry &glyph, const GeneratorAttributes &attribs) {
     msdfgen::MSDFGeneratorConfig config = attribs.config;
     if (attribs.scanlinePass)
         config.errorCorrection.mode = msdfgen::ErrorCorrectionConfig::DISABLED;

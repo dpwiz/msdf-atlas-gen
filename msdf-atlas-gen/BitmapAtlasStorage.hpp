@@ -16,7 +16,7 @@ BitmapAtlasStorage<T, N>::BitmapAtlasStorage(int width, int height) : bitmap(wid
 }
 
 template <typename T, int N>
-BitmapAtlasStorage<T, N>::BitmapAtlasStorage(const msdfgen::BitmapConstRef<T, N> &bitmap) : bitmap(bitmap) { }
+BitmapAtlasStorage<T, N>::BitmapAtlasStorage(const msdfgen::BitmapConstSection<T, N> &bitmap) : bitmap(bitmap) { }
 
 template <typename T, int N>
 BitmapAtlasStorage<T, N>::BitmapAtlasStorage(msdfgen::Bitmap<T, N> &&bitmap) : bitmap((msdfgen::Bitmap<T, N> &&) bitmap) { }
@@ -37,7 +37,17 @@ BitmapAtlasStorage<T, N>::BitmapAtlasStorage(const BitmapAtlasStorage<T, N> &ori
 }
 
 template <typename T, int N>
+BitmapAtlasStorage<T, N>::operator msdfgen::BitmapConstSection<T, N>() const {
+    return bitmap;
+}
+
+template <typename T, int N>
 BitmapAtlasStorage<T, N>::operator msdfgen::BitmapConstRef<T, N>() const {
+    return bitmap;
+}
+
+template <typename T, int N>
+BitmapAtlasStorage<T, N>::operator msdfgen::BitmapSection<T, N>() {
     return bitmap;
 }
 
@@ -53,12 +63,12 @@ BitmapAtlasStorage<T, N>::operator msdfgen::Bitmap<T, N>() && {
 
 template <typename T, int N>
 template <typename S>
-void BitmapAtlasStorage<T, N>::put(int x, int y, const msdfgen::BitmapConstRef<S, N> &subBitmap) {
+void BitmapAtlasStorage<T, N>::put(int x, int y, const msdfgen::BitmapConstSection<S, N> &subBitmap) {
     blit(bitmap, subBitmap, x, y, 0, 0, subBitmap.width, subBitmap.height);
 }
 
 template <typename T, int N>
-void BitmapAtlasStorage<T, N>::get(int x, int y, const msdfgen::BitmapRef<T, N> &subBitmap) const {
+void BitmapAtlasStorage<T, N>::get(int x, int y, const msdfgen::BitmapSection<T, N> &subBitmap) const {
     blit(subBitmap, bitmap, 0, 0, x, y, subBitmap.width, subBitmap.height);
 }
 

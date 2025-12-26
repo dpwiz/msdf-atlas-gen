@@ -37,6 +37,6 @@ struct GeneratorAttributes {
 
 /// A function that generates the bitmap for a single glyph
 template <typename T, int N>
-using GeneratorFunction = void (*)(const msdfgen::BitmapRef<T, N> &, const GlyphGeometry &, const GeneratorAttributes &);
+using GeneratorFunction = void (*)(const msdfgen::BitmapSection<T, N> &, const GlyphGeometry &, const GeneratorAttributes &);
 
 }

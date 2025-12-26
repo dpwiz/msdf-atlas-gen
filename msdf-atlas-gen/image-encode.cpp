@@ -30,7 +30,7 @@ static void pngWrite(png_structp png, png_bytep data, png_size_t length) {
 
 static void pngFlush(png_structp) { }
 
-static bool pngEncode(std::vector<byte> &output, const byte *pixels, int width, int height, int channels, int colorType) {
+static bool pngEncode(std::vector<byte> &output, const byte *pixels, int width, int height, int rowStride, int colorType) {
     if (!(pixels && width && height))
         return false;
     png_structp png = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, &pngIgnoreError, &pngIgnoreError);
@@ -42,7 +42,7 @@ static bool pngEncode(std::vector<byte> &output, const byte *pixels, int width, 
         return false;
     std::vector<const byte *> rows(height);
     for (int y = 0; y < height; ++y)
-        rows[y] = pixels+channels*width*(height-y-1);
+        rows[y] = pixels+rowStride*y;
     if (setjmp(png_jmpbuf(png)))
         return false;
     png_set_write_fn(png, &output, &pngWrite, &pngFlush);
@@ -53,38 +53,48 @@ static bool pngEncode(std::vector<byte> &output, const byte *pixels, int width, 
     return true;
 }
 
-static bool pngEncode(std::vector<byte> &output, const float *pixels, int width, int height, int channels, int colorType) {
+static bool pngEncode(std::vector<byte> &output, const float *pixels, int width, int height, int rowStride, int channels, int colorType) {
     if (!(pixels && width && height))
         return false;
-    int subpixels = channels*width*height;
-    std::vector<byte> bytePixels(subpixels);
-    for (int i = 0; i < subpixels; ++i)
-        bytePixels[i] = msdfgen::pixelFloatToByte(pixels[i]);
-    return pngEncode(output, bytePixels.data(), width, height, channels, colorType);
+    std::vector<byte> bytePixels(channels*width*height);
+    byte *dst = bytePixels.data();
+    const float *rowStart = pixels;
+    for (int y = 0; y < height; ++y) {
+        for (const float *src = rowStart, *end = rowStart+channels*width; src < end; ++src)
+            *dst++ = msdfgen::pixelFloatToByte(*src);
+        rowStart += rowStride;
+    }
+    return pngEncode(output, bytePixels.data(), width, height, channels*width, colorType);
 }
 
-bool encodePng(std::vector<byte> &output, const msdfgen::BitmapConstRef<msdfgen::byte, 1> &bitmap) {
-    return pngEncode(output, bitmap.pixels, bitmap.width, bitmap.height, 1, PNG_COLOR_TYPE_GRAY);
+bool encodePng(std::vector<byte> &output, msdfgen::BitmapConstSection<byte, 1> bitmap) {
+    bitmap.reorient(msdfgen::Y_DOWNWARD);
+    return pngEncode(output, bitmap.pixels, bitmap.width, bitmap.height, bitmap.rowStride, PNG_COLOR_TYPE_GRAY);
 }
 
-bool encodePng(std::vector<byte> &output, const msdfgen::BitmapConstRef<msdfgen::byte, 3> &bitmap) {
-    return pngEncode(output, bitmap.pixels, bitmap.width, bitmap.height, 3, PNG_COLOR_TYPE_RGB);
+bool encodePng(std::vector<byte> &output, msdfgen::BitmapConstSection<byte, 3> bitmap) {
+    bitmap.reorient(msdfgen::Y_DOWNWARD);
+    return pngEncode(output, bitmap.pixels, bitmap.width, bitmap.height, bitmap.rowStride, PNG_COLOR_TYPE_RGB);
 }
 
-bool encodePng(std::vector<byte> &output, const msdfgen::BitmapConstRef<msdfgen::byte, 4> &bitmap) {
-    return pngEncode(output, bitmap.pixels, bitmap.width, bitmap.height, 4, PNG_COLOR_TYPE_RGB_ALPHA);
+bool encodePng(std::vector<byte> &output, msdfgen::BitmapConstSection<byte, 4> bitmap) {
+    bitmap.reorient(msdfgen::Y_DOWNWARD);
+    return pngEncode(output, bitmap.pixels, bitmap.width, bitmap.height, bitmap.rowStride, PNG_COLOR_TYPE_RGB_ALPHA);
 }
 
-bool encodePng(std::vector<byte> &output, const msdfgen::BitmapConstRef<float, 1> &bitmap) {
-    return pngEncode(output, bitmap.pixels, bitmap.width, bitmap.height, 1, PNG_COLOR_TYPE_GRAY);
+bool encodePng(std::vector<byte> &output, msdfgen::BitmapConstSection<float, 1> bitmap) {
+    bitmap.reorient(msdfgen::Y_DOWNWARD);
+    return pngEncode(output, bitmap.pixels, bitmap.width, bitmap.height, bitmap.rowStride, 1, PNG_COLOR_TYPE_GRAY);
 }
 
-bool encodePng(std::vector<byte> &output, const msdfgen::BitmapConstRef<float, 3> &bitmap) {
-    return pngEncode(output, bitmap.pixels, bitmap.width, bitmap.height, 3, PNG_COLOR_TYPE_RGB);
+bool encodePng(std::vector<byte> &output, msdfgen::BitmapConstSection<float, 3> bitmap) {
+    bitmap.reorient(msdfgen::Y_DOWNWARD);
+    return pngEncode(output, bitmap.pixels, bitmap.width, bitmap.height, bitmap.rowStride, 3, PNG_COLOR_TYPE_RGB);
 }
 
-bool encodePng(std::vector<byte> &output, const msdfgen::BitmapConstRef<float, 4> &bitmap) {
-    return pngEncode(output, bitmap.pixels, bitmap.width, bitmap.height, 4, PNG_COLOR_TYPE_RGB_ALPHA);
+bool encodePng(std::vector<byte> &output, msdfgen::BitmapConstSection<float, 4> bitmap) {
+    bitmap.reorient(msdfgen::Y_DOWNWARD);
+    return pngEncode(output, bitmap.pixels, bitmap.width, bitmap.height, bitmap.rowStride, 4, PNG_COLOR_TYPE_RGB_ALPHA);
 }
 
 }
@@ -97,58 +107,67 @@ bool encodePng(std::vector<byte> &output, const msdfgen::BitmapConstRef<float, 4
 
 namespace msdf_atlas {
 
-bool encodePng(std::vector<byte> &output, const msdfgen::BitmapConstRef<msdfgen::byte, 1> &bitmap) {
+bool encodePng(std::vector<byte> &output, msdfgen::BitmapConstSection<byte, 1> bitmap) {
     std::vector<byte> pixels(bitmap.width*bitmap.height);
+    bitmap.reorient(msdfgen::Y_DOWNWARD);
     for (int y = 0; y < bitmap.height; ++y)
-        memcpy(&pixels[bitmap.width*y], bitmap(0, bitmap.height-y-1), bitmap.width);
+        memcpy(&pixels[bitmap.width*y], bitmap(0, y), bitmap.width);
     return !lodepng::encode(output, pixels, bitmap.width, bitmap.height, LCT_GREY);
 }
 
-bool encodePng(std::vector<byte> &output, const msdfgen::BitmapConstRef<msdfgen::byte, 3> &bitmap) {
+bool encodePng(std::vector<byte> &output, msdfgen::BitmapConstSection<byte, 3> bitmap) {
     std::vector<byte> pixels(3*bitmap.width*bitmap.height);
+    bitmap.reorient(msdfgen::Y_DOWNWARD);
     for (int y = 0; y < bitmap.height; ++y)
-        memcpy(&pixels[3*bitmap.width*y], bitmap(0, bitmap.height-y-1), 3*bitmap.width);
+        memcpy(&pixels[3*bitmap.width*y], bitmap(0, y), 3*bitmap.width);
     return !lodepng::encode(output, pixels, bitmap.width, bitmap.height, LCT_RGB);
 }
 
-bool encodePng(std::vector<byte> &output, const msdfgen::BitmapConstRef<msdfgen::byte, 4> &bitmap) {
+bool encodePng(std::vector<byte> &output, msdfgen::BitmapConstSection<byte, 4> bitmap) {
     std::vector<byte> pixels(4*bitmap.width*bitmap.height);
+    bitmap.reorient(msdfgen::Y_DOWNWARD);
     for (int y = 0; y < bitmap.height; ++y)
-        memcpy(&pixels[4*bitmap.width*y], bitmap(0, bitmap.height-y-1), 4*bitmap.width);
+        memcpy(&pixels[4*bitmap.width*y], bitmap(0, y), 4*bitmap.width);
     return !lodepng::encode(output, pixels, bitmap.width, bitmap.height, LCT_RGBA);
 }
 
-bool encodePng(std::vector<byte> &output, const msdfgen::BitmapConstRef<float, 1> &bitmap) {
+bool encodePng(std::vector<byte> &output, msdfgen::BitmapConstSection<float, 1> bitmap) {
     std::vector<byte> pixels(bitmap.width*bitmap.height);
     std::vector<byte>::iterator it = pixels.begin();
-    for (int y = bitmap.height-1; y >= 0; --y)
+    bitmap.reorient(msdfgen::Y_DOWNWARD);
+    for (int y = 0; y < bitmap.height; ++y) {
         for (int x = 0; x < bitmap.width; ++x)
             *it++ = msdfgen::pixelFloatToByte(*bitmap(x, y));
+    }
     return !lodepng::encode(output, pixels, bitmap.width, bitmap.height, LCT_GREY);
 }
 
-bool encodePng(std::vector<byte> &output, const msdfgen::BitmapConstRef<float, 3> &bitmap) {
+bool encodePng(std::vector<byte> &output, msdfgen::BitmapConstSection<float, 3> bitmap) {
     std::vector<byte> pixels(3*bitmap.width*bitmap.height);
     std::vector<byte>::iterator it = pixels.begin();
-    for (int y = bitmap.height-1; y >= 0; --y)
+    bitmap.reorient(msdfgen::Y_DOWNWARD);
+    for (int y = 0; y < bitmap.height; ++y) {
         for (int x = 0; x < bitmap.width; ++x) {
             *it++ = msdfgen::pixelFloatToByte(bitmap(x, y)[0]);
             *it++ = msdfgen::pixelFloatToByte(bitmap(x, y)[1]);
             *it++ = msdfgen::pixelFloatToByte(bitmap(x, y)[2]);
         }
+    }
     return !lodepng::encode(output, pixels, bitmap.width, bitmap.height, LCT_RGB);
 }
 
-bool encodePng(std::vector<byte> &output, const msdfgen::BitmapConstRef<float, 4> &bitmap) {
+bool encodePng(std::vector<byte> &output, msdfgen::BitmapConstSection<float, 4> bitmap) {
     std::vector<byte> pixels(4*bitmap.width*bitmap.height);
     std::vector<byte>::iterator it = pixels.begin();
-    for (int y = bitmap.height-1; y >= 0; --y)
+    bitmap.reorient(msdfgen::Y_DOWNWARD);
+    for (int y = 0; y < bitmap.height; ++y) {
         for (int x = 0; x < bitmap.width; ++x) {
             *it++ = msdfgen::pixelFloatToByte(bitmap(x, y)[0]);
             *it++ = msdfgen::pixelFloatToByte(bitmap(x, y)[1]);
             *it++ = msdfgen::pixelFloatToByte(bitmap(x, y)[2]);
             *it++ = msdfgen::pixelFloatToByte(bitmap(x, y)[3]);
         }
+    }
     return !lodepng::encode(output, pixels, bitmap.width, bitmap.height, LCT_RGBA);
 }
 

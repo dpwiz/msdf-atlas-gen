@@ -302,7 +302,7 @@ struct FontInput {
 struct Configuration {
     ImageType imageType;
     ImageFormat imageFormat;
-    YDirection yDirection;
+    msdfgen::YAxisOrientation yDirection;
     int width, height;
     double emSize;
     msdfgen::Range pxRange;
@@ -335,12 +335,13 @@ static bool makeAtlas(const std::vector<GlyphGeometry> &glyphs, const std::vecto
     generator.setAttributes(config.generatorAttributes);
     generator.setThreadCount(config.threadCount);
     generator.generate(glyphs.data(), glyphs.size());
-    msdfgen::BitmapConstRef<T, N> bitmap = (msdfgen::BitmapConstRef<T, N>) generator.atlasStorage();
+    msdfgen::BitmapConstSection<T, N> bitmap = (msdfgen::BitmapConstSection<T, N>) generator.atlasStorage();
+    bitmap.reorient(config.yDirection);
 
     bool success = true;
 
     if (config.imageFilename) {
-        if (saveImage(bitmap, config.imageFormat, config.imageFilename, config.yDirection))
+        if (saveImage(bitmap, config.imageFormat, config.imageFilename))
             fputs("Atlas image file saved.\n", stderr);
         else {
             success = false;
@@ -355,7 +356,6 @@ static bool makeAtlas(const std::vector<GlyphGeometry> &glyphs, const std::vecto
         arfontProps.pxRange = config.pxRange;
         arfontProps.imageType = config.imageType;
         arfontProps.imageFormat = config.imageFormat;
-        arfontProps.yDirection = config.yDirection;
         if (exportArteryFont<float>(fonts.data(), fonts.size(), bitmap, config.arteryFontFilename, arfontProps))
             fputs("Artery Font file generated.\n", stderr);
         else {
@@ -379,7 +379,7 @@ int main(int argc, const char *const *argv) {
     fontInput.fontScale = -1;
     config.imageType = ImageType::MSDF;
     config.imageFormat = ImageFormat::UNSPECIFIED;
-    config.yDirection = YDirection::BOTTOM_UP;
+    config.yDirection = msdfgen::Y_UPWARD;
     config.grid.fixedOriginX = false, config.grid.fixedOriginY = true;
     config.edgeColoring = msdfgen::edgeColoringInkTrap;
     config.kerning = true;
@@ -597,9 +597,9 @@ int main(int argc, const char *const *argv) {
         }
         ARG_CASE("-yorigin", 1) {
             if (ARG_IS("bottom"))
-                config.yDirection = YDirection::BOTTOM_UP;
+                config.yDirection = msdfgen::Y_UPWARD;
             else if (ARG_IS("top"))
-                config.yDirection = YDirection::TOP_DOWN;
+                config.yDirection = msdfgen::Y_DOWNWARD;
             else
                 ABORT("Invalid Y-axis origin. Use bottom or top.");
             ++argPos;
@@ -1310,10 +1310,10 @@ int main(int argc, const char *const *argv) {
                         printf(", ");
                     if (config.grid.fixedOriginY) {
                         switch (config.yDirection) {
-                            case YDirection::BOTTOM_UP:
+                            case msdfgen::Y_UPWARD:
                                 printf("Y = %.9g", uniformOriginY);
                                 break;
-                            case YDirection::TOP_DOWN:
+                            case msdfgen::Y_DOWNWARD:
                                 printf("Y = %.9g", (config.grid.cellHeight-spacing-1)/config.emSize-uniformOriginY);
                                 break;
                         }

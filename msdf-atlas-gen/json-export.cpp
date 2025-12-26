@@ -74,7 +74,7 @@ bool exportJSON(const FontGeometry *fonts, int fontCount, ImageType imageType, c
         fprintf(f, "\"size\":%.17g,", metrics.size);
         fprintf(f, "\"width\":%d,", metrics.width);
         fprintf(f, "\"height\":%d,", metrics.height);
-        fprintf(f, "\"yOrigin\":\"%s\"", metrics.yDirection == YDirection::TOP_DOWN ? "top" : "bottom");
+        fprintf(f, "\"yOrigin\":\"%s\"", metrics.yDirection == msdfgen::Y_DOWNWARD ? "top" : "bottom");
         if (metrics.grid) {
             fputs(",\"grid\":{", f);
             fprintf(f, "\"cellWidth\":%d,", metrics.grid->cellWidth);
@@ -85,10 +85,10 @@ bool exportJSON(const FontGeometry *fonts, int fontCount, ImageType imageType, c
                 fprintf(f, ",\"originX\":%.17g", *metrics.grid->originX);
             if (metrics.grid->originY) {
                 switch (metrics.yDirection) {
-                    case YDirection::BOTTOM_UP:
+                    case msdfgen::Y_UPWARD:
                         fprintf(f, ",\"originY\":%.17g", *metrics.grid->originY);
                         break;
-                    case YDirection::TOP_DOWN:
+                    case msdfgen::Y_DOWNWARD:
                         fprintf(f, ",\"originY\":%.17g", (metrics.grid->cellHeight-metrics.grid->spacing-1)/metrics.size-*metrics.grid->originY);
                         break;
                 }
@@ -111,7 +111,7 @@ bool exportJSON(const FontGeometry *fonts, int fontCount, ImageType imageType, c
 
         // Font metrics
         fputs("\"metrics\":{", f); {
-            double yFactor = metrics.yDirection == YDirection::TOP_DOWN ? -1 : 1;
+            double yFactor = metrics.yDirection == msdfgen::Y_DOWNWARD ? -1 : 1;
             const msdfgen::FontMetrics &fontMetrics = font.getMetrics();
             fprintf(f, "\"emSize\":%.17g,", fontMetrics.emSize);
             fprintf(f, "\"lineHeight\":%.17g,", fontMetrics.lineHeight);
@@ -139,10 +139,10 @@ bool exportJSON(const FontGeometry *fonts, int fontCount, ImageType imageType, c
             glyph.getQuadPlaneBounds(l, b, r, t);
             if (l || b || r || t) {
                 switch (metrics.yDirection) {
-                    case YDirection::BOTTOM_UP:
+                    case msdfgen::Y_UPWARD:
                         fprintf(f, ",\"planeBounds\":{\"left\":%.17g,\"bottom\":%.17g,\"right\":%.17g,\"top\":%.17g}", l, b, r, t);
                         break;
-                    case YDirection::TOP_DOWN:
+                    case msdfgen::Y_DOWNWARD:
                         fprintf(f, ",\"planeBounds\":{\"left\":%.17g,\"top\":%.17g,\"right\":%.17g,\"bottom\":%.17g}", l, -t, r, -b);
                         break;
                 }
@@ -150,10 +150,10 @@ bool exportJSON(const FontGeometry *fonts, int fontCount, ImageType imageType, c
             glyph.getQuadAtlasBounds(l, b, r, t);
             if (l || b || r || t) {
                 switch (metrics.yDirection) {
-                    case YDirection::BOTTOM_UP:
+                    case msdfgen::Y_UPWARD:
                         fprintf(f, ",\"atlasBounds\":{\"left\":%.17g,\"bottom\":%.17g,\"right\":%.17g,\"top\":%.17g}", l, b, r, t);
                         break;
-                    case YDirection::TOP_DOWN:
+                    case msdfgen::Y_DOWNWARD:
                         fprintf(f, ",\"atlasBounds\":{\"left\":%.17g,\"top\":%.17g,\"right\":%.17g,\"bottom\":%.17g}", l, metrics.height-t, r, metrics.height-b);
                         break;
                 }

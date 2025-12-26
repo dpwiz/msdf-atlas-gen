@@ -25,10 +25,10 @@ public:
     AtlasStorage(const AtlasStorage &orig, int width, int height, const Remap *remapping, int count);
     /// Stores a subsection at x, y into the atlas storage. May be implemented for only some T, N
     template <typename T, int N>
-    void put(int x, int y, const msdfgen::BitmapConstRef<T, N> &subBitmap);
+    void put(int x, int y, const msdfgen::BitmapConstSection<T, N> &subBitmap);
     /// Retrieves a subsection at x, y from the atlas storage. May be implemented for only some T, N
     template <typename T, int N>
-    void get(int x, int y, const msdfgen::BitmapRef<T, N> &subBitmap) const;
+    void get(int x, int y, const msdfgen::BitmapSection<T, N> &subBitmap) const;
 
 };
 

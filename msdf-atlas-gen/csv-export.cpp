@@ -6,7 +6,7 @@
 
 namespace msdf_atlas {
 
-bool exportCSV(const FontGeometry *fonts, int fontCount, int atlasWidth, int atlasHeight, YDirection yDirection, const char *filename) {
+bool exportCSV(const FontGeometry *fonts, int fontCount, int atlasWidth, int atlasHeight, msdfgen::YAxisOrientation yDirection, const char *filename) {
     FILE *f = fopen(filename, "w");
     if (!f)
         return false;
@@ -19,19 +19,19 @@ bool exportCSV(const FontGeometry *fonts, int fontCount, int atlasWidth, int atl
             fprintf(f, "%d,%.17g,", glyph.getIdentifier(fonts[i].getPreferredIdentifierType()), glyph.getAdvance());
             glyph.getQuadPlaneBounds(l, b, r, t);
             switch (yDirection) {
-                case YDirection::BOTTOM_UP:
+                case msdfgen::Y_UPWARD:
                     fprintf(f, "%.17g,%.17g,%.17g,%.17g,", l, b, r, t);
                     break;
-                case YDirection::TOP_DOWN:
+                case msdfgen::Y_DOWNWARD:
                     fprintf(f, "%.17g,%.17g,%.17g,%.17g,", l, -t, r, -b);
                     break;
             }
             glyph.getQuadAtlasBounds(l, b, r, t);
             switch (yDirection) {
-                case YDirection::BOTTOM_UP:
+                case msdfgen::Y_UPWARD:
                     fprintf(f, "%.17g,%.17g,%.17g,%.17g\n", l, b, r, t);
                     break;
-                case YDirection::TOP_DOWN:
+                case msdfgen::Y_DOWNWARD:
                     fprintf(f, "%.17g,%.17g,%.17g,%.17g\n", l, atlasHeight-t, r, atlasHeight-b);
                     break;
             }

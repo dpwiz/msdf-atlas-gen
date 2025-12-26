@@ -45,12 +45,6 @@ enum class GlyphIdentifierType {
     UNICODE_CODEPOINT
 };
 
-/// Direction of the Y-axis
-enum class YDirection {
-    BOTTOM_UP,
-    TOP_DOWN
-};
-
 /// The method of computing the layout of the atlas
 enum class PackingStyle {
     TIGHT,

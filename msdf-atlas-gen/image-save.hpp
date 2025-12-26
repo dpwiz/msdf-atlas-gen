@@ -7,19 +7,19 @@
 namespace msdf_atlas {
 
 template <int N>
-bool saveImageBinary(const msdfgen::BitmapConstRef<byte, N> &bitmap, const char *filename, YDirection outputYDirection);
+bool saveImageBinary(msdfgen::BitmapConstSection<byte, N> bitmap, const char *filename);
 template <int N>
-bool saveImageBinaryLE(const msdfgen::BitmapConstRef<float, N> &bitmap, const char *filename, YDirection outputYDirection);
+bool saveImageBinaryLE(msdfgen::BitmapConstSection<float, N> bitmap, const char *filename);
 template <int N>
-bool saveImageBinaryBE(const msdfgen::BitmapConstRef<float, N> &bitmap, const char *filename, YDirection outputYDirection);
+bool saveImageBinaryBE(msdfgen::BitmapConstSection<float, N> bitmap, const char *filename);
 
 template <int N>
-bool saveImageText(const msdfgen::BitmapConstRef<byte, N> &bitmap, const char *filename, YDirection outputYDirection);
+bool saveImageText(msdfgen::BitmapConstSection<byte, N> bitmap, const char *filename);
 template <int N>
-bool saveImageText(const msdfgen::BitmapConstRef<float, N> &bitmap, const char *filename, YDirection outputYDirection);
+bool saveImageText(msdfgen::BitmapConstSection<float, N> bitmap, const char *filename);
 
 template <int N>
-bool saveImage(const msdfgen::BitmapConstRef<byte, N> &bitmap, ImageFormat format, const char *filename, YDirection outputYDirection = YDirection::BOTTOM_UP) {
+bool saveImage(const msdfgen::BitmapConstSection<byte, N> &bitmap, ImageFormat format, const char *filename) {
     switch (format) {
     #ifndef MSDFGEN_DISABLE_PNG
         case ImageFormat::PNG:
@@ -34,11 +34,11 @@ bool saveImage(const msdfgen::BitmapConstRef<byte, N> &bitmap, ImageFormat forma
         case ImageFormat::FL32:
             return false;
         case ImageFormat::TEXT:
-            return saveImageText(bitmap, filename, outputYDirection);
+            return saveImageText(bitmap, filename);
         case ImageFormat::TEXT_FLOAT:
             return false;
         case ImageFormat::BINARY:
-            return saveImageBinary(bitmap, filename, outputYDirection);
+            return saveImageBinary(bitmap, filename);
         case ImageFormat::BINARY_FLOAT:
         case ImageFormat::BINARY_FLOAT_BE:
             return false;
@@ -48,7 +48,7 @@ bool saveImage(const msdfgen::BitmapConstRef<byte, N> &bitmap, ImageFormat forma
 }
 
 template <int N>
-bool saveImage(const msdfgen::BitmapConstRef<float, N> &bitmap, ImageFormat format, const char *filename, YDirection outputYDirection = YDirection::BOTTOM_UP) {
+bool saveImage(const msdfgen::BitmapConstSection<float, N> &bitmap, ImageFormat format, const char *filename) {
     switch (format) {
     #ifndef MSDFGEN_DISABLE_PNG
         case ImageFormat::PNG:
@@ -65,32 +65,25 @@ bool saveImage(const msdfgen::BitmapConstRef<float, N> &bitmap, ImageFormat form
         case ImageFormat::TEXT:
             return false;
         case ImageFormat::TEXT_FLOAT:
-            return saveImageText(bitmap, filename, outputYDirection);
+            return saveImageText(bitmap, filename);
         case ImageFormat::BINARY:
             return false;
         case ImageFormat::BINARY_FLOAT:
-            return saveImageBinaryLE(bitmap, filename, outputYDirection);
+            return saveImageBinaryLE(bitmap, filename);
         case ImageFormat::BINARY_FLOAT_BE:
-            return saveImageBinaryBE(bitmap, filename, outputYDirection);
+            return saveImageBinaryBE(bitmap, filename);
         default:;
     }
     return false;
 }
 
 template <int N>
-bool saveImageBinary(const msdfgen::BitmapConstRef<byte, N> &bitmap, const char *filename, YDirection outputYDirection) {
+bool saveImageBinary(msdfgen::BitmapConstSection<byte, N> bitmap, const char *filename) {
     bool success = false;
     if (FILE *f = fopen(filename, "wb")) {
         size_t written = 0;
-        switch (outputYDirection) {
-            case YDirection::BOTTOM_UP:
-                written = fwrite(bitmap.pixels, 1, (size_t) N*bitmap.width*bitmap.height, f);
-                break;
-            case YDirection::TOP_DOWN:
-                for (int y = bitmap.height-1; y >= 0; --y)
-                    written += fwrite(bitmap.pixels+(size_t) N*bitmap.width*y, 1, (size_t) N*bitmap.width, f);
-                break;
-        }
+        for (int y = 0; y < bitmap.height; ++y)
+            written += fwrite(bitmap(0, y), 1, (size_t) N*bitmap.width, f);
         success = written == (size_t) N*bitmap.width*bitmap.height;
         fclose(f);
     }
@@ -104,19 +97,13 @@ bool
     #else
         saveImageBinaryLE
     #endif
-        (const msdfgen::BitmapConstRef<float, N> &bitmap, const char *filename, YDirection outputYDirection) {
+        (msdfgen::BitmapConstSection<float, N> bitmap, const char *filename)
+{
     bool success = false;
     if (FILE *f = fopen(filename, "wb")) {
         size_t written = 0;
-        switch (outputYDirection) {
-            case YDirection::BOTTOM_UP:
-                written = fwrite(bitmap.pixels, sizeof(float), (size_t) N*bitmap.width*bitmap.height, f);
-                break;
-            case YDirection::TOP_DOWN:
-                for (int y = bitmap.height-1; y >= 0; --y)
-                    written += fwrite(bitmap.pixels+(size_t) N*bitmap.width*y, sizeof(float), (size_t) N*bitmap.width, f);
-                break;
-        }
+        for (int y = 0; y < bitmap.height; ++y)
+            written += fwrite(bitmap(0, y), sizeof(float), (size_t) N*bitmap.width, f);
         success = written == (size_t) N*bitmap.width*bitmap.height;
         fclose(f);
     }
@@ -130,12 +117,13 @@ bool
     #else
         saveImageBinaryBE
     #endif
-        (const msdfgen::BitmapConstRef<float, N> &bitmap, const char *filename, YDirection outputYDirection) {
+        (msdfgen::BitmapConstSection<float, N> bitmap, const char *filename)
+{
     bool success = false;
     if (FILE *f = fopen(filename, "wb")) {
         size_t written = 0;
         for (int y = 0; y < bitmap.height; ++y) {
-            const float *p = bitmap.pixels+(size_t) N*bitmap.width*(outputYDirection == YDirection::TOP_DOWN ? bitmap.height-y-1 : y);
+            const float *p = bitmap(0, y);
             for (int x = 0; x < bitmap.width; ++x) {
                 const unsigned char *b = reinterpret_cast<const unsigned char *>(p++);
                 for (int i = sizeof(float)-1; i >= 0; --i)
@@ -150,12 +138,12 @@ bool
 
 
 template <int N>
-bool saveImageText(const msdfgen::BitmapConstRef<byte, N> &bitmap, const char *filename, YDirection outputYDirection) {
+bool saveImageText(msdfgen::BitmapConstSection<byte, N> bitmap, const char *filename) {
     bool success = false;
     if (FILE *f = fopen(filename, "wb")) {
         success = true;
         for (int y = 0; y < bitmap.height; ++y) {
-            const byte *p = bitmap.pixels+(size_t) N*bitmap.width*(outputYDirection == YDirection::TOP_DOWN ? bitmap.height-y-1 : y);
+            const byte *p = bitmap(0, y);
             for (int x = 0; x < N*bitmap.width; ++x)
                 success &= fprintf(f, x ? " %02X" : "%02X", (unsigned) *p++) > 0;
             success &= fprintf(f, "\n") > 0;
@@ -166,12 +154,12 @@ bool saveImageText(const msdfgen::BitmapConstRef<byte, N> &bitmap, const char *f
 }
 
 template <int N>
-bool saveImageText(const msdfgen::BitmapConstRef<float, N> &bitmap, const char *filename, YDirection outputYDirection) {
+bool saveImageText(msdfgen::BitmapConstSection<float, N> bitmap, const char *filename) {
     bool success = false;
     if (FILE *f = fopen(filename, "wb")) {
         success = true;
         for (int y = 0; y < bitmap.height; ++y) {
-            const float *p = bitmap.pixels+(size_t) N*bitmap.width*(outputYDirection == YDirection::TOP_DOWN ? bitmap.height-y-1 : y);
+            const float *p = bitmap(0, y);
             for (int x = 0; x < N*bitmap.width; ++x)
                 success &= fprintf(f, x ? " %g" : "%g", *p++) > 0;
             success &= fprintf(f, "\n") > 0;

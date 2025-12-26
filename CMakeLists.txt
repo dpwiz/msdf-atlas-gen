@@ -72,6 +72,11 @@ if(MSDF_ATLAS_USE_VCPKG)
     set(MSDFGEN_VCPKG_FEATURES_SET ON)
 endif()
 
+if(MSDF_ATLAS_INSTALL)
+    include(GNUInstallDirs)
+    include(CMakePackageConfigHelpers)
+endif()
+
 # Version is specified in vcpkg.json
 project(msdf-atlas-gen VERSION ${MSDF_ATLAS_VERSION} LANGUAGES CXX)
 
@@ -103,7 +108,7 @@ target_compile_definitions(msdf-atlas-gen PUBLIC
     MSDF_ATLAS_COPYRIGHT_YEAR=${MSDF_ATLAS_COPYRIGHT_YEAR}
 )
 target_include_directories(msdf-atlas-gen INTERFACE
-    $<INSTALL_INTERFACE:include>
+    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
 )
 if(MSDF_ATLAS_NO_ARTERY_FONT)
@@ -150,8 +155,6 @@ endif()
 
 # Installation
 if(MSDF_ATLAS_INSTALL)
-    include(GNUInstallDirs)
-    include(CMakePackageConfigHelpers)
     set(MSDF_ATLAS_CONFIG_PATH "lib/cmake/msdf-atlas-gen")
 
     # install tree package config

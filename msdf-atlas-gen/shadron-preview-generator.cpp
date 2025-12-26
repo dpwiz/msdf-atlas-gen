@@ -8,7 +8,7 @@ namespace msdf_atlas {
 
 static const char *const shadronFillGlyphMask = R"(
 template <ATLAS, RANGE, ZERO_DIST, COLOR>
-glsl vec4 fillGlyph(vec2 texCoord) {
+vec4 fillGlyph(vec2 texCoord) {
     float fill = texture((ATLAS), texCoord).r;
     return vec4(vec3(COLOR), fill);
 }
@@ -16,24 +16,25 @@ glsl vec4 fillGlyph(vec2 texCoord) {
 
 static const char *const shadronFillGlyphSdf = R"(
 template <ATLAS, RANGE, ZERO_DIST, COLOR>
-glsl vec4 fillGlyph(vec2 texCoord) {
+vec4 fillGlyph(vec2 texCoord) {
     vec3 s = texture((ATLAS), texCoord).rgb;
-    float sd = dot(vec2(RANGE), 0.5/fwidth(texCoord))*(median(s.r, s.g, s.b)-ZERO_DIST);
+    float sd = 0.5*dot(vec2(RANGE), inversesqrt(sqr(dFdx(texCoord))+sqr(dFdy(texCoord))))*(median(s)-ZERO_DIST);
     float fill = clamp(sd+0.5, 0.0, 1.0);
     return vec4(vec3(COLOR), fill);
 }
 )";
 
 static const char *const shadronPreviewPreamble = R"(
+#include <sqr>
 #include <median>
 
-glsl struct GlyphVertex {
+struct GlyphVertex {
     vec2 coord;
     vec2 texCoord;
 };
 
 template <TEXT_SIZE>
-glsl vec4 projectVertex(out vec2 texCoord, in GlyphVertex vertex) {
+vec4 projectVertex(out vec2 texCoord, in GlyphVertex vertex) {
     vec2 coord = vertex.coord;
     float scale = 2.0/max((TEXT_SIZE).x, shadron_Aspect*(TEXT_SIZE).y);
     scale *= exp(0.0625*shadron_Mouse.z);
@@ -44,8 +45,6 @@ glsl vec4 projectVertex(out vec2 texCoord, in GlyphVertex vertex) {
 }
 %s
 #define PREVIEW_IMAGE(NAME, ATLAS, RANGE, ZERO_DIST, COLOR, VERTEX_LIST, TEXT_SIZE, DIMENSIONS) model image NAME : \
-    vertex_data(GlyphVertex), \
-    fragment_data(vec2), \
     vertex(projectVertex<TEXT_SIZE>, triangles, VERTEX_LIST), \
     fragment(fillGlyph<ATLAS, RANGE, ZERO_DIST, COLOR>), \
     depth(false), \

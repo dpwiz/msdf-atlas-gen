@@ -41,7 +41,7 @@ void ImmediateAtlasGenerator<T, N, GEN_FN, AtlasStorage>::generate(const GlyphGe
             glyph.getBoxRect(l, b, w, h);
             msdfgen::BitmapRef<T, N> glyphBitmap(glyphBuffer.data()+threadNo*threadBufferSize, w, h);
             GEN_FN(glyphBitmap, glyph, threadAttributes[threadNo]);
-            storage.put(l, b, msdfgen::BitmapConstRef<T, N>(glyphBitmap));
+            storage.put(l, b, msdfgen::BitmapConstSection<T, N>(glyphBitmap));
         }
         return true;
     }, count).finish(threadCount);
