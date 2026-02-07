@@ -129,9 +129,11 @@ R"(
 
 GLYPH CONFIGURATION
   -size <em size>
-      Specifies the size of the glyphs in the atlas bitmap in pixels per em.
+      Specifies the size of the glyphs in the atlas bitmap in pixels per em (or per cap height with -caps).
   -minsize <em size>
       Specifies the minimum size. The largest possible size that fits the same atlas dimensions will be used.
+  -caps
+      Switches glyph sizing to cap height. With -caps, -size specifies pixels per capital letter height instead of per em.
   -emrange <em range width>
       Specifies the width of the representable SDF distance range in ems.
   -pxrange <pixel range width>
@@ -289,6 +291,13 @@ enum class Units {
     PIXELS
 };
 
+enum class SizingUnit {
+    /// Size is specified in pixels per EM
+    EM,
+    /// Size is specified in pixels per cap height
+    CAPS
+};
+
 struct FontInput {
     const char *fontFilename;
     bool variableFont;
@@ -305,6 +314,7 @@ struct Configuration {
     YDirection yDirection;
     int width, height;
     double emSize;
+    SizingUnit sizingUnit;
     msdfgen::Range pxRange;
     double angleThreshold;
     double miterLimit;
@@ -379,6 +389,7 @@ int main(int argc, const char *const *argv) {
     fontInput.fontScale = -1;
     config.imageType = ImageType::MSDF;
     config.imageFormat = ImageFormat::UNSPECIFIED;
+    config.sizingUnit = SizingUnit::EM;
     config.yDirection = YDirection::BOTTOM_UP;
     config.grid.fixedOriginX = false, config.grid.fixedOriginY = true;
     config.edgeColoring = msdfgen::edgeColoringInkTrap;
@@ -870,6 +881,10 @@ int main(int argc, const char *const *argv) {
             config.kerning = true;
             continue;
         }
+        ARG_CASE("-caps", 0) {
+            config.sizingUnit = SizingUnit::CAPS;
+            continue;
+        }
         ARG_CASE("-nopreprocess", 0) {
             config.preprocessGeometry = false;
             continue;
@@ -1129,6 +1144,8 @@ int main(int argc, const char *const *argv) {
 
             // Load glyphs
             FontGeometry fontGeometry(&glyphs);
+            if (config.sizingUnit == SizingUnit::CAPS)
+                fontGeometry.setCapHeightSizing(true);
             int glyphsLoaded = -1;
             switch (fontInput.glyphIdentifierType) {
                 case GlyphIdentifierType::GLYPH_INDEX:
@@ -1249,7 +1266,7 @@ int main(int argc, const char *const *argv) {
                 config.emSize = atlasPacker.getScale();
                 config.pxRange = atlasPacker.getPixelRange();
                 if (!fixedScale)
-                    printf("Glyph size: %.9g pixels/em\n", config.emSize);
+                    printf("Glyph size: %.9g %s\n", config.emSize, config.sizingUnit == SizingUnit::CAPS ? "pixels/cap" : "pixels/em");
                 if (!fixedDimensions)
                     printf("Atlas dimensions: %d x %d\n", config.width, config.height);
                 break;
@@ -1300,7 +1317,7 @@ int main(int argc, const char *const *argv) {
                 config.grid.cols = atlasPacker.getColumns();
                 config.grid.rows = atlasPacker.getRows();
                 if (!fixedScale)
-                    printf("Glyph size: %.9g pixels/em\n", config.emSize);
+                    printf("Glyph size: %.9g %s\n", config.emSize, config.sizingUnit == SizingUnit::CAPS ? "pixels/cap" : "pixels/em");
                 if (config.grid.fixedOriginX || config.grid.fixedOriginY) {
                     atlasPacker.getFixedOrigin(uniformOriginX, uniformOriginY);
                     printf("Grid cell origin: ");
@@ -1400,6 +1417,7 @@ int main(int argc, const char *const *argv) {
         JsonAtlasMetrics::GridMetrics gridMetrics = { };
         jsonMetrics.distanceRange = config.pxRange;
         jsonMetrics.size = config.emSize;
+        jsonMetrics.sizeUnit = config.sizingUnit == SizingUnit::CAPS ? "capsHeight" : nullptr;
         jsonMetrics.width = config.width, jsonMetrics.height = config.height;
         jsonMetrics.yDirection = config.yDirection;
         if (packingStyle == PackingStyle::GRID) {

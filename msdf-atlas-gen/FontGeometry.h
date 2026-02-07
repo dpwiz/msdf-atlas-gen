@@ -51,6 +51,8 @@ public:
     int loadKerning(msdfgen::FontHandle *font);
     /// Sets a name to be associated with the font
     void setName(const char *name);
+    /// Sets whether to normalize glyph geometry to cap height instead of EM size
+    void setCapHeightSizing(bool enabled);
 
     /// Returns the geometry scale to be used when loading glyphs
     double getGeometryScale() const;
@@ -73,6 +75,7 @@ public:
 
 private:
     double geometryScale;
+    bool useCapHeightSizing;
     msdfgen::FontMetrics metrics;
     GlyphIdentifierType preferredIdentifierType;
     std::vector<GlyphGeometry> *glyphs;

@@ -72,6 +72,8 @@ bool exportJSON(const FontGeometry *fonts, int fontCount, ImageType imageType, c
             fprintf(f, "\"distanceRangeMiddle\":%.17g,", .5*(metrics.distanceRange.lower+metrics.distanceRange.upper));
         }
         fprintf(f, "\"size\":%.17g,", metrics.size);
+        if (metrics.sizeUnit)
+            fprintf(f, "\"sizeUnit\":\"%s\",", metrics.sizeUnit);
         fprintf(f, "\"width\":%d,", metrics.width);
         fprintf(f, "\"height\":%d,", metrics.height);
         fprintf(f, "\"yOrigin\":\"%s\"", metrics.yDirection == YDirection::TOP_DOWN ? "top" : "bottom");
@@ -119,6 +121,8 @@ bool exportJSON(const FontGeometry *fonts, int fontCount, ImageType imageType, c
             fprintf(f, "\"descender\":%.17g,", yFactor*fontMetrics.descenderY);
             fprintf(f, "\"underlineY\":%.17g,", yFactor*fontMetrics.underlineY);
             fprintf(f, "\"underlineThickness\":%.17g", fontMetrics.underlineThickness);
+            if (fontMetrics.capHeight > 0)
+                fprintf(f, ",\"capHeight\":%.17g", fontMetrics.capHeight);
         } fputs("},", f);
 
         // Glyph mapping
